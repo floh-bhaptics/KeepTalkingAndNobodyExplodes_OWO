@@ -2,6 +2,7 @@
 using MelonLoader;
 using HarmonyLib;
 using MyOWOVest;
+using Assets.Scripts.Records;
 
 [assembly: MelonInfo(typeof(KeepTalkingAndNobodyExplodes_OWO.KeepTalkingAndNobodyExplodes_OWO), "KeepTalkingAndNobodyExplodes_OWO", "1.0.0", "Florian Fahrenberger")]
 [assembly: MelonGame("Steel Crate Games", "Keep Talking and Nobody Explodes")]
@@ -57,7 +58,7 @@ namespace KeepTalkingAndNobodyExplodes_OWO
                 tactsuitVr.PlayBackFeedback("ComponentPass");
             }
         }
-        /*
+        
         [HarmonyPatch(typeof(BombComponent), "HandleStrike", new Type[] { typeof(InteractionTypeEnum) })]
         public class OWO_ComponentStrike
         {
@@ -68,6 +69,18 @@ namespace KeepTalkingAndNobodyExplodes_OWO
                     tactsuitVr.PlayBackFeedback("ElectricShock");
             }
         }
-        */
+
+        [HarmonyPatch(typeof(TimerComponent), "Update", new Type[] { })]
+        public class bhaptics_UpdateTimer
+        {
+            [HarmonyPostfix]
+            public static void Postfix(TimerComponent __instance)
+            {
+                if ((__instance.TimeRemaining < 61f) && (__instance.TimeRemaining > 59f)) tactsuitVr.PlayBackFeedback("ThreeHeartBeats");
+                if ((__instance.TimeRemaining < 31f) && (__instance.TimeRemaining > 29f)) tactsuitVr.PlayBackFeedback("ThreeHeartBeats");
+                if ((__instance.TimeRemaining < 11f) && (__instance.TimeRemaining > 9f)) tactsuitVr.PlayBackFeedback("ThreeHeartBeats");
+            }
+        }
+
     }
 }
