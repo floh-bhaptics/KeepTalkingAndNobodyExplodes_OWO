@@ -1,11 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Net;
 using System.Text;
 using System.Threading;
+using MelonLoader;
 using OWOGame;
-using System.Net;
-using System.Linq;
+//using MyOWOSensations;
 
 namespace MyOWOVest
 {
@@ -17,73 +18,92 @@ namespace MyOWOVest
          * - A logging hook to output to the Melonloader log
          * - 
          * */
-        public bool suitDisabled = true;
+        public bool suitDisabled = false;
         public bool systemInitialized = false;
-        // Event to start and stop the heartbeat thread
+        // Event to start and stop the rain thread
+        private static ManualResetEvent Rain_mrse = new ManualResetEvent(false);
+        private static Random rainRandom = new Random();
+        private readonly int rainDropPause = 800;
+        private readonly int rainDropIntensity = 100;
+        private int randomMuscleNumber = 0;
+
         public Dictionary<String, Sensation> FeedbackMap = new Dictionary<String, Sensation>();
 
+        public Muscle getRandomMuscleRain()
+        {
+            randomMuscleNumber = rainRandom.Next(20);
+            if (randomMuscleNumber >= 16) return Muscle.Arm_L;
+            if (randomMuscleNumber >= 12) return Muscle.Arm_R;
+            if (randomMuscleNumber >= 10) return Muscle.Pectoral_L;
+            if (randomMuscleNumber >= 8) return Muscle.Pectoral_R;
+            if (randomMuscleNumber >= 6) return Muscle.Dorsal_L;
+            if (randomMuscleNumber >= 4) return Muscle.Dorsal_R;
+            if (randomMuscleNumber >= 3) return Muscle.Lumbar_L;
+            if (randomMuscleNumber >= 2) return Muscle.Lumbar_R;
+            if (randomMuscleNumber >= 1) return Muscle.Abdominal_L;
+            return Muscle.Abdominal_R;
+        }
 
-        /*
-        //public static ISensation Explosion => new Sensation(100, 1f, 80, 100f, 500f, 0f);
-        public static Sensation Explosion = Sensation.Create(100, 1f, 80, 100f, 500f, 0f);
-        public static ISensation ExplosionBelly = Sensation.CreateWithMuscles(Explosion, Muscle.Lumbar_L, Muscle.Lumbar_R, Muscle.Abdominal_L, Muscle.Abdominal_R);
-        //public static OWOSensationWithMuscles ExplosionBelly = new OWOSensationWithMuscles(Explosion, OWOMuscle.Abdominal_Left, OWOMuscle.Abdominal_Right, OWOMuscle.Lumbar_Left, OWOMuscle.Lumbar_Right);
+        public void RainFunc()
+        {
+            while (true)
+            {
+                Rain_mrse.WaitOne();
+                OWO.Send(FeedbackMap["Raindrop"], getRandomMuscleRain().WithIntensity(rainRandom.Next(rainDropIntensity)));
+                Thread.Sleep(rainRandom.Next(rainDropPause) + 200);
+            }
+        }
 
-        public static Sensation Healing = Sensation.Create(70, 0.5f, 65, 300f, 200f, 0f);
-        public static ISensation HealingBody = Sensation.CreateWithMuscles(Healing, Muscle.AllMuscles);
-
-        
-        public static Sensation Reload1 = Sensation.Create(100, 0.3f, 50, 100f, 100f, 0f);
-        public static Sensation Reload2 = Sensation.Create(100, 0.2f, 40, 0f, 100f, 0f);
-        public static ISensation Reloading = Reload1.ContinueWith(Reload2);
-        */
 
         public TactsuitVR()
         {
             RegisterAllTactFiles();
             InitializeOWO();
+            LOG("Starting rain thread.");
+            Thread RainThread = new Thread(RainFunc);
+            RainThread.Start();
         }
 
-        private async void InitializeOWO()
+        private void InitializeOWO()
         {
             LOG("Initializing suit");
 
             // New auth.
-            //var gameAuth = GameAuth.Create(AllBakedSensations()).WithId("66587306");
-            var gameAuth = GameAuth.Create(AllBakedSensations());
+            var gameAuth = GameAuth.Create(AllBakedSensations()).WithId("45943607");
 
             OWO.Configure(gameAuth);
-            string[] myIPs = getIPsFromFile("OWO_Manual_IP.txt");
-            if (myIPs.Length == 0) await OWO.AutoConnect();
+            string myIP = getIpFromFile("OWO_Manual_IP.txt");
+            OWO.OnConnected += suitConnected;
+            if (myIP == "") OWO.AutoConnect();
             else
             {
-                await OWO.Connect(myIPs);
+                LOG("Found manual IP address: " + myIP);
+                OWO.Connect(myIP);
             }
+        }
 
+        private void suitConnected()
+        {
             if (OWO.ConnectionState == ConnectionState.Connected)
             {
                 suitDisabled = false;
                 LOG("OWO suit connected.");
             }
+            else LOG("ConnectionState weird.");
             if (suitDisabled) LOG("Owo is not enabled?!?!");
         }
 
-        public string[] getIPsFromFile(string filename)
+        public string getIpFromFile(string filename)
         {
-            List<string> ips = new List<string>();
-            string filePath = Directory.GetCurrentDirectory() + "\\BladeAndSorcery_Data\\StreamingAssets\\Mods\\BladeAndSorcery_OWO\\" + filename;
+            string ip = "";
+            string filePath = Directory.GetCurrentDirectory() + "\\Mods\\" + filename;
             if (File.Exists(filePath))
             {
-                LOG("Manual IP file found: " + filePath);
-                var lines = File.ReadLines(filePath);
-                foreach (var line in lines)
-                {
-                    IPAddress address;
-                    if (IPAddress.TryParse(line, out address)) ips.Add(line);
-                    else LOG("IP not valid? ---" + line + "---");
-                }
+                string fileBuffer = File.ReadAllText(filePath);
+                IPAddress address;
+                if (IPAddress.TryParse(fileBuffer, out address)) ip = fileBuffer;
             }
-            return ips.ToArray();
+            return ip;
         }
 
         private BakedSensation[] AllBakedSensations()
@@ -119,25 +139,17 @@ namespace MyOWOVest
             OWO.Disconnect();
         }
 
-        public static void LOG(string logStr)
+        public void LOG(string logStr)
         {
-            try
-            {
-                using (StreamWriter w = File.AppendText("\\BladeAndSorcery_Data\\StreamingAssets\\Mods\\BladeAndSorcery_OWO\\OWOLog_" + DateTime.Now.ToString("yyyyMMdd") + ".log"))
-                {
-                    w.WriteLine(logStr);
-                }
-                //Debug.Log(logStr);
-            }
-            catch (Exception ex)
-            {
-            }
+#pragma warning disable CS0618 // remove warning that the logger is deprecated
+            MelonLogger.Msg(logStr);
+#pragma warning restore CS0618
         }
 
         void RegisterAllTactFiles()
         {
 
-            string configPath = Directory.GetCurrentDirectory() + "\\BladeAndSorcery_Data\\StreamingAssets\\Mods\\BladeAndSorcery_OWO\\OWO";
+            string configPath = Directory.GetCurrentDirectory() + "\\Mods\\OWO";
             DirectoryInfo d = new DirectoryInfo(configPath);
             FileInfo[] Files = d.GetFiles("*.owo", SearchOption.AllDirectories);
             for (int i = 0; i < Files.Length; i++)
@@ -161,40 +173,80 @@ namespace MyOWOVest
             systemInitialized = true;
         }
 
-
-        public void PlayBackHit(string effect, float xzAngle, float yShift)
+        public string DetachFromMuscles(string pattern)
         {
-            string pattern = effect;
-            // two parameters can be given to the pattern to move it on the vest:
-            // 1. An angle in degrees [0, 360] to turn the pattern to the left
-            // 2. A shift [-0.5, 0.5] in y-direction (up and down) to move it up or down
-            if ((xzAngle < 90f))
+            return System.Text.RegularExpressions.Regex.Replace(pattern, "\\|([0-9]%[0-9]+(,)*)+", "");
+        }
+
+        public void StartRain()
+        {
+            Rain_mrse.Set();
+        }
+
+        public void StopRain()
+        {
+            Rain_mrse.Reset();
+        }
+
+        public void StopThreads()
+        {
+            Rain_mrse.Reset();
+            OWO.Stop();
+        }
+
+        public void PlayBackHit(string pattern, float xzAngle, float yShift, float intensity = 1.0f)
+        {
+            if (FeedbackMap.ContainsKey(pattern))
             {
-                pattern += "_LF";
+                Sensation sensation = FeedbackMap[pattern];
+                Muscle myMuscle = Muscle.Pectoral_R;
+                int intensityPercentage = (int)(intensity * 100f);
+                // two parameters can be given to the pattern to move it on the vest:
+                // 1. An angle in degrees [0, 360] to turn the pattern to the left
+                // 2. A shift [-0.5, 0.5] in y-direction (up and down) to move it up or down
+                if ((xzAngle < 90f))
+                {
+                    if (yShift >= 0f) myMuscle = Muscle.Pectoral_L;
+                    else myMuscle = Muscle.Abdominal_L;
+                }
+                if ((xzAngle > 90f) && (xzAngle < 180f))
+                {
+                    if (yShift >= 0f) myMuscle = Muscle.Dorsal_L;
+                    else myMuscle = Muscle.Lumbar_L;
+                }
+                if ((xzAngle > 180f) && (xzAngle < 270f))
+                {
+                    if (yShift >= 0f) myMuscle = Muscle.Dorsal_R;
+                    else myMuscle = Muscle.Lumbar_R;
+                }
+                if ((xzAngle > 270f))
+                {
+                    if (yShift >= 0f) myMuscle = Muscle.Pectoral_R;
+                    else myMuscle = Muscle.Abdominal_R;
+                }
+                OWO.Send(sensation, myMuscle.WithIntensity(intensityPercentage));
             }
-            if ((xzAngle > 90f) && (xzAngle < 180f))
+            else
             {
-                pattern += "_LB";
-            }
-            if ((xzAngle > 180f) && (xzAngle < 270f))
-            {
-                pattern += "_RB";
-            }
-            if ((xzAngle > 270f))
-            {
-                pattern += "_RF";
+                LOG("Feedback not registered: " + pattern);
+                return;
             }
 
-            PlayBackFeedback(pattern);
+        }
+
+
+
+        public void Recoil(bool isRightHand)
+        {
+            if (isRightHand) PlayBackFeedback("RecoilBlade_R");
+            else PlayBackFeedback("RecoilBlade_L");
         }
 
         public void PlayBackFeedback(string feedback, float intensity = 1.0f)
         {
-            //LOG("Pattern: " +  feedback);
             if (FeedbackMap.ContainsKey(feedback))
             {
                 OWO.Send(FeedbackMap[feedback]);
-                //LOG("Played back");
             }
             else LOG("Feedback not registered: " + feedback);
         }

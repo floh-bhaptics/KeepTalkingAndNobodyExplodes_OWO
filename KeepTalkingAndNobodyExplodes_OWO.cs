@@ -1,12 +1,7 @@
 ﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using MelonLoader;
 using HarmonyLib;
 using MyOWOVest;
-using Assets.Scripts.Records;
 
 [assembly: MelonInfo(typeof(KeepTalkingAndNobodyExplodes_OWO.KeepTalkingAndNobodyExplodes_OWO), "KeepTalkingAndNobodyExplodes_OWO", "1.0.0", "Florian Fahrenberger")]
 [assembly: MelonGame("Steel Crate Games", "Keep Talking and Nobody Explodes")]
@@ -62,7 +57,7 @@ namespace KeepTalkingAndNobodyExplodes_OWO
                 tactsuitVr.PlayBackFeedback("ComponentPass");
             }
         }
-
+        /*
         [HarmonyPatch(typeof(BombComponent), "HandleStrike", new Type[] { typeof(InteractionTypeEnum) })]
         public class OWO_ComponentStrike
         {
@@ -73,6 +68,6 @@ namespace KeepTalkingAndNobodyExplodes_OWO
                     tactsuitVr.PlayBackFeedback("ElectricShock");
             }
         }
-
+        */
     }
 }
