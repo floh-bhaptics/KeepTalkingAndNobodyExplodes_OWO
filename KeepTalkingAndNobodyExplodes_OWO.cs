@@ -39,6 +39,7 @@ namespace KeepTalkingAndNobodyExplodes_OWO
             }
         }
 
+        /*
         [HarmonyPatch(typeof(Bomb), "OnStrike", new Type[] { typeof(BombComponent) })]
         public class OWO_Mistake
         {
@@ -48,6 +49,7 @@ namespace KeepTalkingAndNobodyExplodes_OWO
                 tactsuitVr.PlayBackFeedback("ComponentStrike");
             }
         }
+        */
 
         [HarmonyPatch(typeof(Bomb), "OnPass", new Type[] { typeof(BombComponent) })]
         public class OWO_CorrectEntry
@@ -67,6 +69,7 @@ namespace KeepTalkingAndNobodyExplodes_OWO
             {
                 if (interactionType == InteractionTypeEnum.CutWire)
                     tactsuitVr.PlayBackFeedback("ElectricShock");
+                else tactsuitVr.PlayBackFeedback("ComponentStrike");
             }
         }
 
