@@ -13,6 +13,9 @@ namespace KeepTalkingAndNobodyExplodes_OWO
     public class KeepTalkingAndNobodyExplodes_OWO : MelonMod
     {
         public static TactsuitVR tactsuitVr;
+        private static bool sixtyleft = true;
+        private static bool thirtyleft = true;
+        private static bool tenleft = true;
 
         public override void OnInitializeMelon()
         {
@@ -26,6 +29,7 @@ namespace KeepTalkingAndNobodyExplodes_OWO
             public static void Postfix()
             {
                 tactsuitVr.PlayBackFeedback("BombExplode");
+                ResetBools();
             }
         }
 
@@ -36,6 +40,7 @@ namespace KeepTalkingAndNobodyExplodes_OWO
             public static void Postfix()
             {
                 tactsuitVr.PlayBackFeedback("BombSolved");
+                ResetBools();
             }
         }
 
@@ -79,10 +84,17 @@ namespace KeepTalkingAndNobodyExplodes_OWO
             [HarmonyPostfix]
             public static void Postfix(TimerComponent __instance)
             {
-                if ((__instance.TimeRemaining < 61f) && (__instance.TimeRemaining > 59f)) tactsuitVr.PlayBackFeedback("ThreeHeartBeats");
-                if ((__instance.TimeRemaining < 31f) && (__instance.TimeRemaining > 29f)) tactsuitVr.PlayBackFeedback("ThreeHeartBeats");
-                if ((__instance.TimeRemaining < 11f) && (__instance.TimeRemaining > 9f)) tactsuitVr.PlayBackFeedback("ThreeHeartBeats");
+                if ((__instance.TimeRemaining <= 60f) && (sixtyleft)) { tactsuitVr.PlayBackFeedback("ThreeHeartBeats"); sixtyleft = false; }
+                if ((__instance.TimeRemaining <= 30f) && (thirtyleft)) { tactsuitVr.PlayBackFeedback("ThreeHeartBeats"); thirtyleft = false; }
+                if ((__instance.TimeRemaining < 10f) && (tenleft)) { tactsuitVr.PlayBackFeedback("ThreeHeartBeats"); tenleft = false; }
             }
+        }
+
+        public static void ResetBools()
+        {
+            sixtyleft = true;
+            thirtyleft = true;
+            tenleft = true;
         }
 
     }

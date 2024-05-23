@@ -64,7 +64,6 @@
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
     <PostBuildEvent>XCOPY "$(SolutionDir)OWO" "$(TargetDir)\OWO" /Y /S
-DEL /Q "$(TargetDir)OWO.xml"
 MOVE /Y "$(TargetDir)OWO_3.5.dll" "$(TargetDir)..\UserLibs\"
 </PostBuildEvent>
   </PropertyGroup>
